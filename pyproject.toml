@@ -1,0 +1,22 @@
+[build-system]
+requires = ["maturin>=1.3,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "tipping"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+[project.optional-dependencies]
+tests = [
+    "pytest",
+]
+dynamic = ["version"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "tipping._lib_tipping"
+features = ["pyo3/extension-module"]
