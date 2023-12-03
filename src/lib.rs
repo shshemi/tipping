@@ -8,7 +8,7 @@ use regex::Regex;
 use tokenizer::Token;
 use tokenizer::Tokenizer;
 
-use crate::interdependency::{build_interdependency_graph, dependency};
+use crate::interdependency::build_interdependency_graph;
 use crate::interdependency::key_node_values;
 
 mod interdependency;
