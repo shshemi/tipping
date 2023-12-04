@@ -64,7 +64,7 @@ fn token_independency_clusters(
         Token::SpecialBlack(_) => false,
     });
 
-    let c = messages
+    Ok(messages
         .iter()
         .enumerate()
         .par_bridge()
@@ -110,9 +110,8 @@ fn token_independency_clusters(
         .unwrap()
         .into_iter()
         .map(|(k, v)| (k.into_iter().map(ToOwned::to_owned).collect::<Vec<_>>(), v))
-        .collect();
-    // todo!()
-    Ok(c)
+        .collect()
+    )
 }
 
 /// A Python module implemented in Rust.
