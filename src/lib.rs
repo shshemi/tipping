@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 use std::collections::{HashMap, HashSet};
 
-use interdependency::build_token_occurance;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use regex::Regex;
@@ -9,7 +8,8 @@ use tokenizer::Token;
 use tokenizer::Tokenizer;
 use traits::IntoKeyNodes;
 
-use crate::interdependency::build_interdependency_graph;
+use interdependency::Interdependency;
+
 
 mod interdependency;
 mod tokenizer;
@@ -34,7 +34,7 @@ impl TokenFilter {
         }
     }
 }
-/// Formats the sum of two numbers as string.
+
 #[pyfunction]
 fn token_independency_clusters(
     messages: Vec<String>,
@@ -54,7 +54,7 @@ fn token_independency_clusters(
         .collect();
     let symbols = symbols.chars().collect();
     let tokenizer = Tokenizer::new(special_whites, special_blacks, symbols);
-    let occurance = build_token_occurance(&messages, &tokenizer, |tok| match tok {
+    let idep = Interdependency::with(&messages, &tokenizer, |tok| match tok {
         Token::Alphabetic(_) => filter.alphabetic,
         Token::Numeric(_) => filter.numeric,
         Token::Symbolic(_) => false,
@@ -63,14 +63,14 @@ fn token_independency_clusters(
         Token::SpecialWhite(_) => true,
         Token::SpecialBlack(_) => false,
     });
-    println!("occurance length: {}", occurance.len());
+
     let c = messages
         .iter()
         .enumerate()
         .par_bridge()
         .map(|(idx, msg)| {
             let toks = tokenizer.tokenize(msg);
-            let igraph = build_interdependency_graph(&toks, &occurance, threshold);
+            let igraph = idep.graph(&toks,  threshold);
             let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
             for tok in &toks {
                 match tok {
