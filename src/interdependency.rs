@@ -78,7 +78,7 @@ pub fn build_interdependency_graph<'a>(
     graph
 }
 
-pub fn key_node_values<'a>(igraph: MatrixGraph<&'a str, ()>) -> Option<BTreeSet<&'a str>> {
+pub fn key_node_values(igraph: MatrixGraph<&str, ()>) -> Option<BTreeSet<&str>> {
     // let g = build_graph(tokens, word_context, threshold);
     let scc = kosaraju_scc(&igraph);
     scc.iter()
@@ -99,19 +99,3 @@ pub fn dependency(tok_occ: &TokenOccurance, word: &str, condition: &str) -> f32 
     let single = *tok_occ.get(&[word].into()).unwrap_or_else(||panic!("Word '{}' not found in occurances", word));
     (double as f32) / (single as f32)
 }
-
-// fn dependency(&self, word: &str, condition: &str) -> f32 {
-//     let co_occ = *self.occurance_count.get(&[word, condition].into()).unwrap();
-//     let occ = *self.occurance_count.get(&[word].into()).unwrap();
-//     (co_occ as f32) / (occ as f32)
-// }
-
-// impl<'a> From<&'a Vec<String>> for TokenInterdependency<'a> {
-//     fn from(value: &'a Vec<String>) -> Self {
-//         value.into_iter()
-//         .par_bridge()
-//         .map(|msg|{}){
-//             let toks =
-//         }
-//     }
-// }
