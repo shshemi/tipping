@@ -7,12 +7,14 @@ use rayon::prelude::*;
 use regex::Regex;
 use tokenizer::Token;
 use tokenizer::Tokenizer;
+use traits::IntoKeyNodes;
 
 use crate::interdependency::build_interdependency_graph;
 use crate::interdependency::key_node_values;
 
 mod interdependency;
 mod tokenizer;
+mod traits;
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -70,7 +72,7 @@ fn token_independency_clusters(
         .map(|(idx, msg)| {
             let toks = tokenizer.tokenize(msg);
             let igraph = build_interdependency_graph(&toks, &occurance, threshold);
-            let mut key_nodes = key_node_values(igraph).unwrap_or_default();
+            let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
             for tok in &toks {
                 match tok {
                     Token::SpecialWhite(slice) => {
