@@ -19,8 +19,8 @@ def token_independency_clusters(
     """ Parse the input list of messages into multiple clusters according to their key tokens.
 
     ### Arguments:
-        messages (): a list of message for parsing.
-        threshod (): a floating number between `0.0` and `1.0` where token dependencies above it
+        messages ([str]): a list of message for parsing.
+        threshod (float): a floating number between `0.0` and `1.0` where token dependencies above it
         are considered as dependent. Default = `0.5`
         special_whites ([str]): a list of regexes that should never be recognized as parameters.
         Default = `None`
