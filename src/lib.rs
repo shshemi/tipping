@@ -10,7 +10,6 @@ use tokenizer::Tokenizer;
 use traits::IntoKeyNodes;
 
 use crate::interdependency::build_interdependency_graph;
-use crate::interdependency::key_node_values;
 
 mod interdependency;
 mod tokenizer;

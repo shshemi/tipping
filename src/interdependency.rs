@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::tokenizer::{Token, Tokenizer};
 use itertools::Itertools;
-use petgraph::{algo::kosaraju_scc, matrix_graph::MatrixGraph};
+use petgraph::matrix_graph::MatrixGraph;
 use rayon::prelude::*;
 
 pub type TokenCombination<'a> = BTreeSet<&'a str>;
@@ -76,22 +76,6 @@ pub fn build_interdependency_graph<'a>(
         }
     });
     graph
-}
-
-pub fn key_node_values(igraph: MatrixGraph<&str, ()>) -> Option<BTreeSet<&str>> {
-    // let g = build_graph(tokens, word_context, threshold);
-    let scc = kosaraju_scc(&igraph);
-    scc.iter()
-        .enumerate()
-        .max_by_key(|(_, cc)| cc.len())
-        .map(|(lcc_idx, _)| {
-            let temp_toks = scc[..=lcc_idx]
-                .iter()
-                .flat_map(|v| v.iter())
-                .map(|n| *igraph.node_weight(*n))
-                .collect::<BTreeSet<_>>();
-            temp_toks
-        })
 }
 
 pub fn dependency(tok_occ: &TokenOccurance, word: &str, condition: &str) -> f32 {
