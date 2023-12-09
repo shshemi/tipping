@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use crate::tokenizer::{Token, Tokenizer};
+use crate::tokenizer::{MessageToken, Tokenizer};
 use itertools::Itertools;
 use petgraph::matrix_graph::MatrixGraph;
 use rayon::prelude::*;
@@ -20,7 +20,7 @@ impl<'a> Interdependency<'a> {
     ) -> Self
     where
         S: AsRef<str> + Sync,
-        F: Fn(&Token) -> bool + Sync + Copy,
+        F: Fn(&MessageToken) -> bool + Sync + Copy,
     {
         Self{
         token_occurance: msgs.iter()
@@ -63,12 +63,12 @@ impl<'a> Interdependency<'a> {
 
     pub fn graph(
         &self,
-        tokens: &[Token<'a>],
+        tokens: &[MessageToken<'a>],
         threshold: f32,
     ) -> MatrixGraph<&'a str, ()> {
         let token = tokens
             .iter()
-            .map(Token::as_str)
+            .map(MessageToken::as_str)
             .filter(|slice| self.token_occurance.contains_key(&BTreeSet::from([*slice])))
             .collect::<Vec<_>>();
         let mut graph = MatrixGraph::with_capacity(token.len());

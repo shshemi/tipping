@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use regex::Regex;
-use tokenizer::Token;
+use tokenizer::MessageToken;
 use tokenizer::Tokenizer;
 use traits::IntoKeyNodes;
 
@@ -55,13 +55,13 @@ fn token_independency_clusters(
     let symbols = symbols.chars().collect();
     let tokenizer = Tokenizer::new(special_whites, special_blacks, symbols);
     let idep = Interdependency::with(&messages, &tokenizer, |tok| match tok {
-        Token::Alphabetic(_) => filter.alphabetic,
-        Token::Numeric(_) => filter.numeric,
-        Token::Symbolic(_) => false,
-        Token::Whitespace(_) => false,
-        Token::Impure(_) => filter.impure,
-        Token::SpecialWhite(_) => true,
-        Token::SpecialBlack(_) => false,
+        MessageToken::Alphabetic(_) => filter.alphabetic,
+        MessageToken::Numeric(_) => filter.numeric,
+        MessageToken::Symbolic(_) => false,
+        MessageToken::Whitespace(_) => false,
+        MessageToken::Impure(_) => filter.impure,
+        MessageToken::SpecialWhite(_) => true,
+        MessageToken::SpecialBlack(_) => false,
     });
 
     Ok(messages
@@ -74,10 +74,10 @@ fn token_independency_clusters(
             let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
             for tok in &toks {
                 match tok {
-                    Token::SpecialWhite(slice) => {
+                    MessageToken::SpecialWhite(slice) => {
                         key_nodes.insert(slice);
                     }
-                    Token::SpecialBlack(slice) => {
+                    MessageToken::SpecialBlack(slice) => {
                         key_nodes.remove(slice);
                     }
                     _ => (),

@@ -21,16 +21,16 @@ impl Tokenizer {
         }
     }
 
-    pub fn tokenize<'a>(&self, msg: &'a str) -> Vec<Token<'a>> {
+    pub fn tokenize<'a>(&self, msg: &'a str) -> Vec<MessageToken<'a>> {
         let mut tokens = Vec::new();
         for pre_token in self.pre_tokenize(msg) {
             match pre_token {
                 // PreToken::Special(slice) => tokens.push(Token::Special(slice)),
                 PreToken::SpecialWhite(slice) => {
-                    tokens.push(Token::SpecialWhite(slice));
+                    tokens.push(MessageToken::SpecialWhite(slice));
                 }
                 PreToken::SpecialBlack(slice) => {
-                    tokens.push(Token::SpecialBlack(slice));
+                    tokens.push(MessageToken::SpecialBlack(slice));
                 }
                 PreToken::Unrefined(slice) => {
                     tokens.append(&mut split_token(slice, &self.symbols));
@@ -118,7 +118,7 @@ fn split_special<'a, Special: Fn(&'a str) -> PreToken>(
     pre_tokens
 }
 
-fn split_token<'a>(msg: &'a str, symbols: &HashSet<char>) -> Vec<Token<'a>> {
+fn split_token<'a>(msg: &'a str, symbols: &HashSet<char>) -> Vec<MessageToken<'a>> {
     let mut start_idx = 0;
     let mut toks = Vec::new();
     while let Some(end_idx) = msg[start_idx..]
@@ -126,19 +126,19 @@ fn split_token<'a>(msg: &'a str, symbols: &HashSet<char>) -> Vec<Token<'a>> {
         .map(|idx| idx + start_idx)
     {
         if start_idx < end_idx {
-            toks.push(Token::with(&msg[start_idx..end_idx], symbols));
+            toks.push(MessageToken::with(&msg[start_idx..end_idx], symbols));
         }
-        toks.push(Token::with(&msg[end_idx..end_idx + 1], symbols));
+        toks.push(MessageToken::with(&msg[end_idx..end_idx + 1], symbols));
         start_idx = end_idx + 1;
     }
     if start_idx < msg.len() {
-        toks.push(Token::with(&msg[start_idx..], symbols));
+        toks.push(MessageToken::with(&msg[start_idx..], symbols));
     }
     toks
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Token<'a> {
+pub enum MessageToken<'a> {
     Alphabetic(&'a str),
     Numeric(&'a str),
     Symbolic(&'a str),
@@ -149,35 +149,35 @@ pub enum Token<'a> {
     SpecialBlack(&'a str),
 }
 
-impl<'a> Token<'a> {
-    pub fn with(slice: &'a str, symbols: &HashSet<char>) -> Token<'a> {
+impl<'a> MessageToken<'a> {
+    pub fn with(slice: &'a str, symbols: &HashSet<char>) -> MessageToken<'a> {
         if slice.chars().all(char::is_alphabetic) {
-            Token::Alphabetic(slice)
+            MessageToken::Alphabetic(slice)
         } else if slice.chars().all(char::is_numeric) {
-            Token::Numeric(slice)
+            MessageToken::Numeric(slice)
         } else if slice.len() == 1 {
             if slice.chars().all(char::is_whitespace) {
-                Token::Whitespace(slice)
+                MessageToken::Whitespace(slice)
             } else if slice.chars().all(|c| symbols.contains(&c)) {
-                Token::Symbolic(slice)
+                MessageToken::Symbolic(slice)
             } else {
                 // panic!("Invalid token '{}'", slice);
-                Token::Impure(slice)
+                MessageToken::Impure(slice)
             }
         } else {
-            Token::Impure(slice)
+            MessageToken::Impure(slice)
         }
     }
 
     pub fn as_str(&self) -> &'a str {
         match self {
-            Token::Alphabetic(slice) => slice,
-            Token::Numeric(slice) => slice,
-            Token::Symbolic(slice) => slice,
-            Token::Whitespace(slice) => slice,
-            Token::Impure(slice) => slice,
-            Token::SpecialWhite(slice) => slice,
-            Token::SpecialBlack(slice) => slice,
+            MessageToken::Alphabetic(slice) => slice,
+            MessageToken::Numeric(slice) => slice,
+            MessageToken::Symbolic(slice) => slice,
+            MessageToken::Whitespace(slice) => slice,
+            MessageToken::Impure(slice) => slice,
+            MessageToken::SpecialWhite(slice) => slice,
+            MessageToken::SpecialBlack(slice) => slice,
             // Token::Special(slice) => slice,
         }
     }
@@ -227,35 +227,35 @@ mod tests {
         let computed = tokenizer
             .tokenize("Fan fan_2 speed is set to 12.3114 on machine sys.node.fan_3 on node 12");
         let expected = vec![
-            Token::Alphabetic("Fan"),
-            Token::Whitespace(" "),
-            Token::SpecialWhite("fan_2"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("speed"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("is"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("set"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("to"),
-            Token::Whitespace(" "),
-            Token::SpecialBlack("12.3114"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("on"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("machine"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("sys"),
-            Token::Symbolic("."),
-            Token::Alphabetic("node"),
-            Token::Symbolic("."),
-            Token::SpecialWhite("fan_3"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("on"),
-            Token::Whitespace(" "),
-            Token::Alphabetic("node"),
-            Token::Whitespace(" "),
-            Token::Numeric("12"),
+            MessageToken::Alphabetic("Fan"),
+            MessageToken::Whitespace(" "),
+            MessageToken::SpecialWhite("fan_2"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("speed"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("is"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("set"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("to"),
+            MessageToken::Whitespace(" "),
+            MessageToken::SpecialBlack("12.3114"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("on"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("machine"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("sys"),
+            MessageToken::Symbolic("."),
+            MessageToken::Alphabetic("node"),
+            MessageToken::Symbolic("."),
+            MessageToken::SpecialWhite("fan_3"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("on"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Alphabetic("node"),
+            MessageToken::Whitespace(" "),
+            MessageToken::Numeric("12"),
         ];
         assert_eq!(expected, computed);
     }
