@@ -4,14 +4,15 @@ use std::collections::{HashMap, HashSet};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use regex::Regex;
+use template::{common_words, parameter_masks, templates};
 use tokenizer::MessageToken;
 use tokenizer::Tokenizer;
 use traits::IntoKeyNodes;
 
 use interdependency::Interdependency;
 
-
 mod interdependency;
+mod template;
 mod tokenizer;
 mod traits;
 
@@ -35,6 +36,25 @@ impl TokenFilter {
     }
 }
 
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct Computations {
+    template: bool,
+    mask: bool,
+}
+
+#[pymethods]
+impl Computations {
+    #[new]
+    fn new(template: bool, mask: bool) -> Self {
+        Self { mask, template }
+    }
+}
+
+type MessageClusters = Vec<Option<usize>>;
+type ParameterMasks = Vec<String>;
+type ClusterTemplates = Vec<HashSet<String>>;
+
 #[pyfunction]
 fn token_independency_clusters(
     messages: Vec<String>,
@@ -43,7 +63,8 @@ fn token_independency_clusters(
     special_blacks: Vec<String>,
     symbols: String,
     filter: TokenFilter,
-) -> PyResult<Vec<(Vec<String>, HashSet<usize>)>> {
+    comps: Computations,
+) -> PyResult<(MessageClusters, ParameterMasks, ClusterTemplates)> {
     let special_blacks = special_blacks
         .into_iter()
         .map(|re| Regex::new(re.as_str()).unwrap())
@@ -64,13 +85,13 @@ fn token_independency_clusters(
         MessageToken::SpecialBlack(_) => false,
     });
 
-    Ok(messages
+    let cluster_map = messages
         .iter()
         .enumerate()
         .par_bridge()
         .map(|(idx, msg)| {
             let toks = tokenizer.tokenize(msg);
-            let igraph = idep.graph(&toks,  threshold);
+            let igraph = idep.graph(&toks, threshold);
             let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
             for tok in &toks {
                 match tok {
@@ -107,11 +128,68 @@ fn token_independency_clusters(
             });
             m1
         })
-        .unwrap()
-        .into_iter()
-        .map(|(k, v)| (k.into_iter().map(ToOwned::to_owned).collect::<Vec<_>>(), v))
-        .collect()
-    )
+        .unwrap();
+
+    let mut cluster_vec = vec![None; messages.len()];
+    let mut mask_vec = if comps.mask {
+        let mut v = vec![String::default(); messages.len()];
+        if let Some(indices) = cluster_map.get(&BTreeSet::default()) {
+            for idx in indices {
+                let idx = *idx;
+                v[idx] = "0".repeat(messages[idx].len());
+            }
+        }
+        v
+    } else {
+        Default::default()
+    };
+    let mut template_vec = if comps.template {
+        vec![HashSet::new(); cluster_map.len()]
+    } else {
+        Default::default()
+    };
+    cluster_map
+        .iter()
+        .filter(|(set, _)| !set.is_empty())
+        .enumerate()
+        .for_each(|(cid, (_, indices))| {
+            if comps.mask | comps.template {
+                let cw = common_words(
+                    indices.iter().map(|idx| messages[*idx].as_str()),
+                    &tokenizer,
+                    filter.alphabetic,
+                    filter.numeric,
+                    filter.impure,
+                );
+                if comps.template {
+                    template_vec[cid] = templates(
+                        indices.iter().map(|idx| messages[*idx].as_str()),
+                        &tokenizer,
+                        &cw,
+                    );
+                }
+                if comps.mask {
+                    let msg_msk_map = parameter_masks(
+                        indices.iter().map(|idx| messages[*idx].as_str()),
+                        &tokenizer,
+                        &cw,
+                    );
+                    for idx in indices {
+                        cluster_vec[*idx] = Some(cid);
+                        mask_vec[*idx] = msg_msk_map.get(&messages[*idx]).unwrap().to_owned();
+                    }
+                }
+            }
+            if !comps.mask {
+                for idx in indices {
+                    cluster_vec[*idx] = Some(cid);
+                }
+            }
+        });
+
+    Ok((cluster_vec, mask_vec, template_vec))
+
+   
 }
 
 /// A Python module implemented in Rust.
@@ -119,6 +197,8 @@ fn token_independency_clusters(
 #[pyo3(name = "_lib_tipping")]
 fn tipping(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(token_independency_clusters, m)?)?;
+    // m.add_function(wrap_pyfunction!(mine_template, m)?)?;
     m.add_class::<TokenFilter>()?;
+    m.add_class::<Computations>()?;
     Ok(())
 }
