@@ -85,50 +85,7 @@ fn token_independency_clusters(
         MessageToken::SpecialBlack(_) => false,
     });
 
-    let cluster_map = messages
-        .iter()
-        .enumerate()
-        .par_bridge()
-        .map(|(idx, msg)| {
-            let toks = tokenizer.tokenize(msg);
-            let igraph = idep.graph(&toks, threshold);
-            let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
-            for tok in &toks {
-                match tok {
-                    MessageToken::SpecialWhite(slice) => {
-                        key_nodes.insert(slice);
-                    }
-                    MessageToken::SpecialBlack(slice) => {
-                        key_nodes.remove(slice);
-                    }
-                    _ => (),
-                }
-            }
-
-            (idx, key_nodes)
-        })
-        .fold_with(
-            HashMap::<BTreeSet<&str>, HashSet<usize>>::new(),
-            |mut map, (idx, key_tokens)| {
-                map.entry(key_tokens)
-                    .and_modify(|indices| {
-                        indices.insert(idx);
-                    })
-                    .or_insert([idx].into());
-                map
-            },
-        )
-        .reduce_with(|mut m1, m2| {
-            m2.into_iter().for_each(|(k, v2)| {
-                if let Some(v1) = m1.get_mut(&k) {
-                    v1.extend(v2);
-                } else {
-                    m1.insert(k, v2);
-                }
-            });
-            m1
-        })
-        .unwrap();
+    let cluster_map = cluster_map(&messages, &tokenizer, &idep, threshold);
 
     let mut cluster_vec = vec![None; messages.len()];
     let mut mask_vec = if comps.mask {
@@ -188,8 +145,58 @@ fn token_independency_clusters(
         });
 
     Ok((cluster_vec, mask_vec, template_vec))
+}
 
-   
+fn cluster_map<'a>(
+    messages: &'a [String],
+    tokenizer: &Tokenizer,
+    idep: &Interdependency<'a>,
+    threshold: f32,
+) -> HashMap<BTreeSet<&'a str>, HashSet<usize>> {
+    messages
+        .iter()
+        .enumerate()
+        .par_bridge()
+        .map(|(idx, msg)| {
+            let toks = tokenizer.tokenize(msg);
+            let igraph = idep.graph(&toks, threshold);
+            let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
+            for tok in &toks {
+                match tok {
+                    MessageToken::SpecialWhite(slice) => {
+                        key_nodes.insert(slice);
+                    }
+                    MessageToken::SpecialBlack(slice) => {
+                        key_nodes.remove(slice);
+                    }
+                    _ => (),
+                }
+            }
+
+            (idx, key_nodes)
+        })
+        .fold_with(
+            HashMap::<BTreeSet<&str>, HashSet<usize>>::new(),
+            |mut map, (idx, key_tokens)| {
+                map.entry(key_tokens)
+                    .and_modify(|indices| {
+                        indices.insert(idx);
+                    })
+                    .or_insert([idx].into());
+                map
+            },
+        )
+        .reduce_with(|mut m1, m2| {
+            m2.into_iter().for_each(|(k, v2)| {
+                if let Some(v1) = m1.get_mut(&k) {
+                    v1.extend(v2);
+                } else {
+                    m1.insert(k, v2);
+                }
+            });
+            m1
+        })
+        .unwrap_or_default()
 }
 
 /// A Python module implemented in Rust.
