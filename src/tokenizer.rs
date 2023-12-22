@@ -137,7 +137,7 @@ fn split_token<'a>(msg: &'a str, symbols: &HashSet<char>) -> Vec<MessageToken<'a
     toks
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub enum MessageToken<'a> {
     Alphabetic(&'a str),
     Numeric(&'a str),

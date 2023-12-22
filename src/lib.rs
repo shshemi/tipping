@@ -7,14 +7,13 @@ use regex::Regex;
 use template::{common_words, parameter_masks, templates};
 use tokenizer::MessageToken;
 use tokenizer::Tokenizer;
-use traits::IntoKeyNodes;
+
 
 use interdependency::Interdependency;
 
 mod interdependency;
 mod template;
 mod tokenizer;
-mod traits;
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -147,36 +146,25 @@ fn token_independency_clusters(
     Ok((cluster_vec, mask_vec, template_vec))
 }
 
-fn cluster_map<'a>(
-    messages: &'a [String],
+fn cluster_map<'a, T: AsRef<str> + Sync>(
+    messages: &'a [T],
     tokenizer: &Tokenizer,
-    idep: &Interdependency<'a>,
+    idep: &'a Interdependency<'a>,
     threshold: f32,
-) -> HashMap<BTreeSet<&'a str>, HashSet<usize>> {
+) -> HashMap<BTreeSet<MessageToken<'a>>, HashSet<usize>> {
     messages
         .iter()
         .enumerate()
         .par_bridge()
         .map(|(idx, msg)| {
-            let toks = tokenizer.tokenize(msg);
-            let igraph = idep.graph(&toks, threshold);
-            let mut key_nodes = igraph.into_key_nodes().unwrap_or_default();
-            for tok in &toks {
-                match tok {
-                    MessageToken::SpecialWhite(slice) => {
-                        key_nodes.insert(slice);
-                    }
-                    MessageToken::SpecialBlack(slice) => {
-                        key_nodes.remove(slice);
-                    }
-                    _ => (),
-                }
-            }
+            // let toks = tokenizer.tokenize(msg.as_ref());
+            // let igraph = idep.graph(&toks, threshold);
+            // let mut key_nodes = key_tokens(igraph);
 
-            (idx, key_nodes)
+            (idx, idep.key_tokens(tokenizer.tokenize(msg.as_ref()), threshold))
         })
         .fold_with(
-            HashMap::<BTreeSet<&str>, HashSet<usize>>::new(),
+            HashMap::<BTreeSet<MessageToken<'a>>, HashSet<usize>>::new(),
             |mut map, (idx, key_tokens)| {
                 map.entry(key_tokens)
                     .and_modify(|indices| {
