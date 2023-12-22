@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use rayon::prelude::*;
 
-use crate::tokenizer::{MessageToken, Tokenizer};
+use crate::tokenizer::{Token, Tokenizer};
 
 pub fn common_words<'a, Iter: Iterator<Item = &'a str> + Send>(
     iter: Iter,
@@ -17,12 +17,12 @@ pub fn common_words<'a, Iter: Iterator<Item = &'a str> + Send>(
             toks_vec
                 .into_iter()
                 .filter_map(|tok| match tok {
-                    MessageToken::SpecialWhite(slice) => Some(slice),
-                    MessageToken::Whitespace(slice) => Some(slice),
-                    MessageToken::Symbolic(slice) => Some(slice),
-                    MessageToken::Alphabetic(slice) if filter_alphabetic => Some(slice),
-                    MessageToken::Numeric(slice) if filter_numeric => Some(slice),
-                    MessageToken::Impure(slice) if filter_impure => Some(slice),
+                    Token::SpecialWhite(slice) => Some(slice),
+                    Token::Whitespace(slice) => Some(slice),
+                    Token::Symbolic(slice) => Some(slice),
+                    Token::Alphabetic(slice) if filter_alphabetic => Some(slice),
+                    Token::Numeric(slice) if filter_numeric => Some(slice),
+                    Token::Impure(slice) if filter_impure => Some(slice),
                     _ => None,
                 })
                 .collect::<HashSet<_>>()

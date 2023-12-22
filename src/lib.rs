@@ -5,7 +5,7 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use regex::Regex;
 use template::{common_words, parameter_masks, templates};
-use tokenizer::MessageToken;
+use tokenizer::Token;
 use tokenizer::Tokenizer;
 
 
@@ -75,13 +75,13 @@ fn token_independency_clusters(
     let symbols = symbols.chars().collect();
     let tokenizer = Tokenizer::new(special_whites, special_blacks, symbols);
     let idep = Interdependency::with(&messages, &tokenizer, |tok| match tok {
-        MessageToken::Alphabetic(_) => filter.alphabetic,
-        MessageToken::Numeric(_) => filter.numeric,
-        MessageToken::Symbolic(_) => false,
-        MessageToken::Whitespace(_) => false,
-        MessageToken::Impure(_) => filter.impure,
-        MessageToken::SpecialWhite(_) => true,
-        MessageToken::SpecialBlack(_) => false,
+        Token::Alphabetic(_) => filter.alphabetic,
+        Token::Numeric(_) => filter.numeric,
+        Token::Symbolic(_) => false,
+        Token::Whitespace(_) => false,
+        Token::Impure(_) => filter.impure,
+        Token::SpecialWhite(_) => true,
+        Token::SpecialBlack(_) => false,
     });
 
     let cluster_map = cluster_map(&messages, &tokenizer, &idep, threshold);
@@ -151,7 +151,7 @@ fn cluster_map<'a, T: AsRef<str> + Sync>(
     tokenizer: &Tokenizer,
     idep: &'a Interdependency<'a>,
     threshold: f32,
-) -> HashMap<BTreeSet<MessageToken<'a>>, HashSet<usize>> {
+) -> HashMap<BTreeSet<Token<'a>>, HashSet<usize>> {
     messages
         .iter()
         .enumerate()
@@ -164,7 +164,7 @@ fn cluster_map<'a, T: AsRef<str> + Sync>(
             (idx, idep.key_tokens(tokenizer.tokenize(msg.as_ref()), threshold))
         })
         .fold_with(
-            HashMap::<BTreeSet<MessageToken<'a>>, HashSet<usize>>::new(),
+            HashMap::<BTreeSet<Token<'a>>, HashSet<usize>>::new(),
             |mut map, (idx, key_tokens)| {
                 map.entry(key_tokens)
                     .and_modify(|indices| {

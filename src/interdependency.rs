@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use crate::tokenizer::{MessageToken, Tokenizer};
+use crate::tokenizer::{Token, Tokenizer};
 use itertools::Itertools;
 use petgraph::{algo::kosaraju_scc, matrix_graph::MatrixGraph};
 use rayon::prelude::*;
@@ -16,7 +16,7 @@ impl<'a> Interdependency<'a> {
     pub fn with<S, F>(msgs: &'a [S], tokenizer: &Tokenizer, token_filter: F) -> Self
     where
         S: AsRef<str> + Sync,
-        F: Fn(&MessageToken) -> bool + Sync + Copy,
+        F: Fn(&Token) -> bool + Sync + Copy,
     {
         Self {
             token_occurance: msgs
@@ -60,9 +60,9 @@ impl<'a> Interdependency<'a> {
 
     pub fn key_tokens(
         &self,
-        tokens: Vec<MessageToken<'a>>,
+        tokens: Vec<Token<'a>>,
         threshold: f32,
-    ) -> BTreeSet<MessageToken<'_>> {
+    ) -> BTreeSet<Token<'_>> {
         let g = self.graph(&tokens, threshold);
         let scc = kosaraju_scc(&g);
         let mut key_nodes = scc
@@ -80,10 +80,10 @@ impl<'a> Interdependency<'a> {
             .unwrap_or_default();
         for tok in tokens {
             match tok {
-                MessageToken::SpecialWhite(_) => {
+                Token::SpecialWhite(_) => {
                     key_nodes.insert(tok);
                 }
-                MessageToken::SpecialBlack(_) => {
+                Token::SpecialBlack(_) => {
                     key_nodes.remove(&tok);
                 }
                 _ => (),
@@ -94,9 +94,9 @@ impl<'a> Interdependency<'a> {
 
     pub fn graph(
         &self,
-        tokens: &[MessageToken<'a>],
+        tokens: &[Token<'a>],
         threshold: f32,
-    ) -> MatrixGraph<MessageToken<'a>, ()> {
+    ) -> MatrixGraph<Token<'a>, ()> {
         let mut graph = MatrixGraph::with_capacity(tokens.len());
         let nodes = tokens
             .iter()
