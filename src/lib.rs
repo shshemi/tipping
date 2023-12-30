@@ -157,11 +157,10 @@ fn cluster_map<'a, T: AsRef<str> + Sync>(
         .enumerate()
         .par_bridge()
         .map(|(idx, msg)| {
-            // let toks = tokenizer.tokenize(msg.as_ref());
-            // let igraph = idep.graph(&toks, threshold);
-            // let mut key_nodes = key_tokens(igraph);
-
-            (idx, idep.key_tokens(tokenizer.tokenize(msg.as_ref()), threshold))
+            (
+                idx,
+                idep.key_tokens(tokenizer.tokenize(msg.as_ref()), threshold),
+            )
         })
         .fold_with(
             HashMap::<BTreeSet<Token<'a>>, HashSet<usize>>::new(),
