@@ -14,6 +14,7 @@ use interdependency::Interdependency;
 mod interdependency;
 mod template;
 mod tokenizer;
+mod graph;
 
 #[pyclass]
 #[derive(Debug, Clone)]

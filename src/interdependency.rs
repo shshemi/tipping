@@ -1,8 +1,11 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use crate::tokenizer::{Token, Tokenizer};
+use crate::{
+    graph::build_graph,
+    tokenizer::{Token, Tokenizer},
+};
 use itertools::Itertools;
-use petgraph::{algo::kosaraju_scc, matrix_graph::MatrixGraph};
+use petgraph::algo::kosaraju_scc;
 use rayon::prelude::*;
 
 pub type TokenCombination<'a> = BTreeSet<&'a str>;
@@ -64,7 +67,18 @@ impl<'a> Interdependency<'a> {
     }
 
     pub fn key_tokens(&self, tokens: Vec<Token<'a>>, threshold: f32) -> BTreeSet<Token<'_>> {
-        let g = self.graph(&tokens, threshold);
+        // let g = self.graph(&tokens, threshold);
+        let g = build_graph(
+            tokens
+                .iter()
+                .filter(|&tok| self.contains(tok.as_str()))
+                .cloned(),
+            |t1, t2| {
+                self.contains(t1.as_str())
+                    && self.contains(t2.as_str())
+                    && self.dependency(t1.as_str(), t2.as_str()) > threshold
+            },
+        );
         let scc = kosaraju_scc(&g);
         let mut key_nodes = scc
             .iter()
@@ -93,45 +107,6 @@ impl<'a> Interdependency<'a> {
         key_nodes
     }
 
-    pub fn graph(&self, tokens: &[Token<'a>], threshold: f32) -> MatrixGraph<Token<'a>, ()> {
-        let mut graph = MatrixGraph::with_capacity(tokens.len());
-        let nodes = tokens
-            .iter()
-            .unique()
-            .filter_map(|tok| {
-                if self.contains(tok.as_str()) {
-                    Some(graph.add_node(tok.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        nodes.into_iter().combinations(2).for_each(|comb| {
-            let (node1, node2) = (comb[0], comb[1]);
-            if self.contains_pair(
-                graph.node_weight(node1).as_str(),
-                graph.node_weight(node2).as_str(),
-            ) {
-                if self.dependency(
-                    graph.node_weight(node1).as_str(),
-                    graph.node_weight(node2).as_str(),
-                ) > threshold
-                {
-                    graph.add_edge(node1, node2, ());
-                }
-                if self.dependency(
-                    graph.node_weight(node2).as_str(),
-                    graph.node_weight(node1).as_str(),
-                ) > threshold
-                {
-                    graph.add_edge(node2, node1, ());
-                }
-            }
-        });
-        // let nodes = token.iter().map(|t| graph.add_node(**t)).collect::<Vec<_>>();
-        graph
-    }
-
     pub fn dependency(&self, word: &str, condition: &str) -> f32 {
         let double = *self
             .token_occurance
@@ -146,11 +121,6 @@ impl<'a> Interdependency<'a> {
 
     pub fn contains(&self, word: &str) -> bool {
         self.token_occurance.contains_key(&BTreeSet::from([word]))
-    }
-
-    pub fn contains_pair(&self, word: &str, condition: &str) -> bool {
-        self.token_occurance
-            .contains_key(&BTreeSet::from([word, condition]))
     }
 }
 
