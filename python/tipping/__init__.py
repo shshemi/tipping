@@ -13,7 +13,7 @@ def token_independency_clusters(
     messages: List[str],
     threshold: float = 0.5,
     special_whites: List[str] = None,
-    special_black: List[str] = None,
+    special_blacks: List[str] = None,
     symbols: str = "()[]{}=,*",
     keep_alphabetic: bool = True,
     keep_numeric: bool = False,
@@ -48,8 +48,8 @@ def token_independency_clusters(
         when the cluster couldn't be identified, and the second element is the corresponding parameter mask
         for each message, and the third is an array where each element is a set of template.
     """
-    if special_black is None:
-        special_black = []
+    if special_blacks is None:
+        special_blacks = []
 
     if special_whites is None:
         special_whites = []
@@ -60,7 +60,7 @@ def token_independency_clusters(
         messages,
         threshold,
         special_whites,
-        special_black,
+        special_blacks,
         symbols,
         filter,
         computations,
