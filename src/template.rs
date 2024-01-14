@@ -76,26 +76,21 @@ pub fn parameter_masks<'a, Iter: Iterator<Item = &'a str> + Send>(
 ) -> HashMap<String, String> {
     iter.par_bridge()
         .fold_with(HashMap::new(), |mut map, msg| {
-                        let toks = tokenizer.tokenize(msg);
+            let toks = tokenizer.tokenize(msg);
             let mut msk_vec = Vec::with_capacity(msg.len());
             toks.into_iter().for_each(|tok| {
                 let slice = tok.as_str();
                 if common_slices.contains(slice) {
-                    (0..slice.len()).for_each(|_|{
-                        msk_vec.push('0')
-                    });
+                    (0..slice.len()).for_each(|_| msk_vec.push('0'));
                 } else {
-                    (0..slice.len()).for_each(|_|{
-                        msk_vec.push('1')
-                    });
+                    (0..slice.len()).for_each(|_| msk_vec.push('1'));
                 }
             });
             let chars = msg.chars().collect::<Vec<_>>();
             for idx in 1..msk_vec.len() - 2 {
-                if msk_vec[idx-1] == '1' && msk_vec[idx+1] == '1' && chars[idx] != ' ' {
+                if msk_vec[idx - 1] == '1' && msk_vec[idx + 1] == '1' && chars[idx] != ' ' {
                     msk_vec[idx] = '1'
                 }
-                
             }
             map.insert(msg, msk_vec);
             map
