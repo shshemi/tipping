@@ -1,20 +1,8 @@
-use std::collections::BTreeSet;
 use std::collections::{HashMap, HashSet};
 
 use pyo3::prelude::*;
-use rayon::prelude::*;
-use regex::Regex;
-use template::{common_words, parameter_masks, templates};
-use tokenizer::Token;
-use tokenizer::Tokenizer;
+use fancy_regex::Regex;
 
-
-use interdependency::Interdependency;
-
-mod interdependency;
-mod template;
-mod tokenizer;
-mod graph;
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -67,124 +55,54 @@ fn token_independency_clusters(
 ) -> PyResult<(MessageClusters, ParameterMasks, ClusterTemplates)> {
     let special_blacks = special_blacks
         .into_iter()
-        .map(|re| Regex::new(re.as_str()).unwrap())
+        .map(compile_regex)
         .collect();
     let special_whites = special_whites
         .into_iter()
-        .map(|re| Regex::new(re.as_str()).unwrap())
+        .map(compile_regex)
         .collect();
     let symbols = symbols.chars().collect();
-    let tokenizer = Tokenizer::new(special_whites, special_blacks, symbols);
-    let idep = Interdependency::with(&messages, &tokenizer, |tok| match tok {
-        Token::Alphabetic(_) => filter.alphabetic,
-        Token::Numeric(_) => filter.numeric,
-        Token::Symbolic(_) => false,
-        Token::Whitespace(_) => false,
-        Token::Impure(_) => filter.impure,
-        Token::SpecialWhite(_) => true,
-        Token::SpecialBlack(_) => false,
-    });
 
-    let cluster_map = cluster_map(&messages, &tokenizer, &idep, threshold);
-
-    let mut cluster_vec = vec![None; messages.len()];
-    let mut mask_vec = if comps.mask {
-        let mut v = vec![String::default(); messages.len()];
-        if let Some(indices) = cluster_map.get(&BTreeSet::default()) {
-            for idx in indices {
-                let idx = *idx;
-                v[idx] = "0".repeat(messages[idx].len());
-            }
+    let parser = tipping_rs::Parser::default()
+        .with_threshold(threshold)
+        .with_special_whites(special_whites)
+        .with_special_blacks(special_blacks)
+        .with_symbols(symbols)
+        .with_filter_alphabetic(filter.alphabetic)
+        .with_filter_numeric(filter.numeric)
+        .with_filter_impure(filter.impure);
+    Ok(match comps {
+        Computations {
+            template: false,
+            mask: false,
+        } => {
+            let clusters = parser.parse(&messages);
+            (clusters, Default::default(), Default::default())
         }
-        v
-    } else {
-        Default::default()
-    };
-    let mut template_vec = if comps.template {
-        vec![HashSet::new(); cluster_map.len()]
-    } else {
-        Default::default()
-    };
-    cluster_map
-        .iter()
-        .filter(|(set, _)| !set.is_empty())
-        .enumerate()
-        .for_each(|(cid, (_, indices))| {
-            if comps.mask | comps.template {
-                let cw = common_words(
-                    indices.iter().map(|idx| messages[*idx].as_str()),
-                    &tokenizer,
-                    filter.alphabetic,
-                    filter.numeric,
-                    filter.impure,
-                );
-                if comps.template {
-                    template_vec[cid] = templates(
-                        indices.iter().map(|idx| messages[*idx].as_str()),
-                        &tokenizer,
-                        &cw,
-                    );
-                }
-                if comps.mask {
-                    let msg_msk_map = parameter_masks(
-                        indices.iter().map(|idx| messages[*idx].as_str()),
-                        &tokenizer,
-                        &cw,
-                    );
-                    for idx in indices {
-                        cluster_vec[*idx] = Some(cid);
-                        mask_vec[*idx] = msg_msk_map.get(&messages[*idx]).unwrap().to_owned();
-                    }
-                }
-            }
-            if !comps.mask {
-                for idx in indices {
-                    cluster_vec[*idx] = Some(cid);
-                }
-            }
-        });
+        Computations {
+            template: false,
+            mask: true,
+        } => {
+            let (clusters, masks) = parser.compute_masks().parse(&messages);
+            (clusters, one_to_one_masks(&messages, masks), Default::default())
+        }
+        Computations {
+            template: true,
+            mask: false,
+        } => {
+            let (clusters, templates) = parser.compute_templates().parse(&messages);
+            (clusters, Default::default(), templates)
+        }
 
-    Ok((cluster_vec, mask_vec, template_vec))
-}
-
-fn cluster_map<'a, T: AsRef<str> + Sync>(
-    messages: &'a [T],
-    tokenizer: &Tokenizer,
-    idep: &'a Interdependency<'a>,
-    threshold: f32,
-) -> HashMap<BTreeSet<Token<'a>>, HashSet<usize>> {
-    messages
-        .iter()
-        .enumerate()
-        .par_bridge()
-        .map(|(idx, msg)| {
-            (
-                idx,
-                idep.key_tokens(tokenizer.tokenize(msg.as_ref()), threshold),
-            )
-        })
-        .fold_with(
-            HashMap::<BTreeSet<Token<'a>>, HashSet<usize>>::new(),
-            |mut map, (idx, key_tokens)| {
-                map.entry(key_tokens)
-                    .and_modify(|indices| {
-                        indices.insert(idx);
-                    })
-                    .or_insert([idx].into());
-                map
-            },
-        )
-        .reduce_with(|mut m1, m2| {
-            m2.into_iter().for_each(|(k, v2)| {
-                if let Some(v1) = m1.get_mut(&k) {
-                    v1.extend(v2);
-                } else {
-                    m1.insert(k, v2);
-                }
-            });
-            m1
-        })
-        .unwrap_or_default()
+        Computations {
+            template: true,
+            mask: true,
+        } => {
+            let (clusters, templates, masks) =
+                parser.compute_masks().compute_templates().parse(&messages);
+                (clusters, one_to_one_masks(&messages, masks), templates)
+        }
+    })
 }
 
 /// A Python module implemented in Rust.
@@ -192,8 +110,21 @@ fn cluster_map<'a, T: AsRef<str> + Sync>(
 #[pyo3(name = "_lib_tipping")]
 fn tipping(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(token_independency_clusters, m)?)?;
-    // m.add_function(wrap_pyfunction!(mine_template, m)?)?;
     m.add_class::<TokenFilter>()?;
     m.add_class::<Computations>()?;
     Ok(())
+}
+
+fn one_to_one_masks(messages: &[String], masks: HashMap<String, String>) -> Vec<String> {
+    messages
+        .iter()
+        .map(|msg| masks.get(msg).map(ToOwned::to_owned).unwrap_or("0".repeat(msg.len())))
+        .collect::<Vec<_>>()
+}
+
+fn compile_regex(re: impl AsRef<str>) -> Regex {
+    match Regex::new(re.as_ref()) {
+        Ok(regex) => regex,
+        Err(err) => panic!("Error: {}, Regex: {}", err, re.as_ref()),
+    }
 }
