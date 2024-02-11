@@ -9,7 +9,7 @@ if hasattr(_lib_tipping, "__all__"):
     __all__ = _lib_tipping.__all__
 
 
-def token_independency_clusters(
+def parse(
     messages: List[str],
     threshold: float = 0.5,
     special_whites: List[str] = None,
