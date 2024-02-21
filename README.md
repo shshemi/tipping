@@ -20,7 +20,7 @@ Load your log messages into a list of strings and:
 import tipping
 
 # Example usage
-message = ["Your messages here"]
+message = ["message1", "message2", ...]
 clusters, masks, templates = tipping.parse(message)
 
 print(result)
