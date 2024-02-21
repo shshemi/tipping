@@ -15,13 +15,13 @@ Tipping could be installed from PyPI:
 pip install tipping
 ```
 ## Usage
-Load your log messages into a list of strings and:
+Load your log messages into a list of strings (`List[str]`) and:
 ```python
 import tipping
 
 # Example usage
-message = ["message1", "message2", ...]
-clusters, masks, templates = tipping.parse(message)
+messages = ["message1", "message2", ...]
+clusters, masks, templates = tipping.parse(messages)
 
 print(result)
 ```
