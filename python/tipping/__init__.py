@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 from ._lib_tipping import token_independency_clusters as _token_independency_clusters
 from ._lib_tipping import TokenFilter as _TokenFilter
 from ._lib_tipping import Computations as _Computation
@@ -20,7 +20,7 @@ def parse(
     keep_impure: bool = False,
     return_templates: bool = True,
     return_masks: bool = True,
-) -> Tuple[List[int | None], List[str], List[Set[str]]]:
+) -> Tuple[List[Optional[int]], List[str], List[Set[str]]]:
     """Parse the input list of messages into multiple clusters according to their key tokens.
 
     ### Arguments:
@@ -43,7 +43,7 @@ def parse(
 
 
     ### Returns:
-        Tuple[List[int | None], List[str], List[Set[str]]]: A tuple of three element where the first list
+        Tuple[List[Optional[int]], List[str], List[Set[str]]]: A tuple of three element where the first list
         of optional integers where for integer values are indications of cluster ids and `None` is used
         when the cluster couldn't be identified, and the second element is the corresponding parameter mask
         for each message, and the third is an array where each element is a set of template.
