@@ -2,6 +2,7 @@ from typing import List, Optional, Set, Tuple
 from ._lib_tipping import token_independency_clusters as _token_independency_clusters
 from ._lib_tipping import TokenFilter as _TokenFilter
 from ._lib_tipping import Computations as _Computation
+from ._lib_tipping import Tokenizer as _Tokenizer
 
 
 __doc__ = _lib_tipping.__doc__
@@ -65,3 +66,20 @@ def parse(
         filter,
         computations,
     )
+
+
+class Tokenizer:
+    def __init__(
+        self,
+        special_whites: Optional[List[str]] = None,
+        special_blacks: Optional[List[str]] = None,
+        symbol: Optional[str] = None,
+    ) -> None:
+        self.internal = _Tokenizer(
+            special_whites if special_whites else [],
+            special_blacks if special_blacks else [],
+            symbol if symbol else "",
+        )
+
+    def tokenize(self, message: str) -> List[str]:
+        return self.internal.tokenize(message)

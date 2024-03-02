@@ -1,8 +1,48 @@
 use std::collections::{HashMap, HashSet};
 
-use pyo3::prelude::*;
 use fancy_regex::Regex;
+use pyo3::prelude::*;
+use tipping_rs::Tokenize;
 
+#[pyclass]
+pub struct Tokenizer {
+    internal: tipping_rs::Tokenizer,
+}
+
+#[pymethods]
+impl Tokenizer {
+    #[new]
+    pub fn new(special_whites: Vec<String>, special_blacks: Vec<String>, symbols: String) -> Self {
+        Self {
+            internal: tipping_rs::Tokenizer::new(
+                special_whites
+                    .into_iter()
+                    .map(|pattern| {
+                        Regex::new(&pattern)
+                            .unwrap_or_else(|_| panic!("Unable to compile {}", pattern))
+                    })
+                    .collect(),
+                special_blacks
+                    .into_iter()
+                    .map(|pattern| {
+                        Regex::new(&pattern)
+                            .unwrap_or_else(|_| panic!("Unable to compile {}", pattern))
+                    })
+                    .collect(),
+                symbols.chars().collect(),
+            ),
+        }
+    }
+
+    pub fn tokenize(&self, msg: String) -> Vec<String> {
+        self
+            .internal
+            .tokenize(&msg)
+            .into_iter()
+            .map(|tok| tok.as_str().to_owned())
+            .collect()
+    }
+}
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -53,14 +93,8 @@ fn token_independency_clusters(
     filter: TokenFilter,
     comps: Computations,
 ) -> PyResult<(MessageClusters, ParameterMasks, ClusterTemplates)> {
-    let special_blacks = special_blacks
-        .into_iter()
-        .map(compile_regex)
-        .collect();
-    let special_whites = special_whites
-        .into_iter()
-        .map(compile_regex)
-        .collect();
+    let special_blacks = special_blacks.into_iter().map(compile_regex).collect();
+    let special_whites = special_whites.into_iter().map(compile_regex).collect();
     let symbols = symbols.chars().collect();
 
     let parser = tipping_rs::Parser::default()
@@ -84,7 +118,11 @@ fn token_independency_clusters(
             mask: true,
         } => {
             let (clusters, masks) = parser.compute_masks().parse(&messages);
-            (clusters, one_to_one_masks(&messages, masks), Default::default())
+            (
+                clusters,
+                one_to_one_masks(&messages, masks),
+                Default::default(),
+            )
         }
         Computations {
             template: true,
@@ -100,7 +138,7 @@ fn token_independency_clusters(
         } => {
             let (clusters, templates, masks) =
                 parser.compute_masks().compute_templates().parse(&messages);
-                (clusters, one_to_one_masks(&messages, masks), templates)
+            (clusters, one_to_one_masks(&messages, masks), templates)
         }
     })
 }
@@ -112,13 +150,19 @@ fn tipping(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(token_independency_clusters, m)?)?;
     m.add_class::<TokenFilter>()?;
     m.add_class::<Computations>()?;
+    m.add_class::<Tokenizer>()?;
     Ok(())
 }
 
 fn one_to_one_masks(messages: &[String], masks: HashMap<String, String>) -> Vec<String> {
     messages
         .iter()
-        .map(|msg| masks.get(msg).map(ToOwned::to_owned).unwrap_or("0".repeat(msg.len())))
+        .map(|msg| {
+            masks
+                .get(msg)
+                .map(ToOwned::to_owned)
+                .unwrap_or("0".repeat(msg.len()))
+        })
         .collect::<Vec<_>>()
 }
 
