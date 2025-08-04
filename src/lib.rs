@@ -19,14 +19,14 @@ impl Tokenizer {
                     .into_iter()
                     .map(|pattern| {
                         Regex::new(&pattern)
-                            .unwrap_or_else(|_| panic!("Unable to compile {}", pattern))
+                            .unwrap_or_else(|_| panic!("Unable to compile {pattern}"))
                     })
-                    .collect(),
+                    .collect::<Vec<_>>(),
                 special_blacks
                     .into_iter()
                     .map(|pattern| {
                         Regex::new(&pattern)
-                            .unwrap_or_else(|_| panic!("Unable to compile {}", pattern))
+                            .unwrap_or_else(|_| panic!("Unable to compile {pattern}"))
                     })
                     .collect(),
                 symbols.chars().collect(),
@@ -35,8 +35,7 @@ impl Tokenizer {
     }
 
     pub fn tokenize(&self, msg: String) -> Vec<String> {
-        self
-            .internal
+        self.internal
             .tokenize(&msg)
             .into_iter()
             .map(|tok| tok.as_str().to_owned())
@@ -145,8 +144,7 @@ fn token_independency_clusters(
 
 /// A Python module implemented in Rust.
 #[pymodule]
-#[pyo3(name = "_lib_tipping")]
-fn tipping(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _lib_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(token_independency_clusters, m)?)?;
     m.add_class::<TokenFilter>()?;
     m.add_class::<Computations>()?;
