@@ -144,7 +144,7 @@ fn token_independency_clusters(
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _lib_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _lib_tipping(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(token_independency_clusters, m)?)?;
     m.add_class::<TokenFilter>()?;
     m.add_class::<Computations>()?;
