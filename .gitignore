@@ -1,4 +1,6 @@
-/target
+target
+core/target
+py-ext/target
 Cargo.lock
 
 # Byte-compiled / optimized / DLL files

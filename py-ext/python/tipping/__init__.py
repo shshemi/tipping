@@ -5,16 +5,12 @@ from ._lib_tipping import Computations as _Computation
 from ._lib_tipping import Tokenizer as _Tokenizer
 
 
-__doc__ = _lib_tipping.__doc__
-if hasattr(_lib_tipping, "__all__"):
-    __all__ = _lib_tipping.__all__
-
 
 def parse(
     messages: List[str],
     threshold: float = 0.5,
-    special_whites: List[str] = None,
-    special_blacks: List[str] = None,
+    special_whites: Optional[List[str]] = None,
+    special_blacks: Optional[List[str]] = None,
     symbols: str = "()[]{}=,*",
     keep_alphabetic: bool = True,
     keep_numeric: bool = False,
