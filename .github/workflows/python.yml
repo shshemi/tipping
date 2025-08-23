@@ -3,7 +3,7 @@
 #
 #    maturin generate-ci github -m py-ext/Cargo.toml
 #
-name: CI
+name: Publish to PyPi
 
 on:
   push:

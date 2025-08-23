@@ -4,7 +4,7 @@ on:
       - "*"
   workflow_dispatch:
 
-name: Publish
+name: Publish to Crates.io
 
 jobs:
   test:
