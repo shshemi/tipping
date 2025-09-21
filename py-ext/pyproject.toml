@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "tipping"
-version = "0.2.0"
+dynamic = ["version"]
 requires-python = ">=3.8"
 description = "A python binding for the Rust implementation of Tipping algorithm (tipping-rs)"
 readme = "README.md"
@@ -16,7 +16,6 @@ classifiers = [
 ]
 [project.optional-dependencies]
 tests = ["pytest"]
-dynamic = ["version"]
 
 [tool.maturin]
 python-source = "python"
