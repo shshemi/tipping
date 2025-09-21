@@ -1,15 +1,15 @@
 mod graph;
-mod token_record;
 mod misc;
 mod parser;
 mod template;
 mod token_filter;
+mod token_record;
 mod tokenizer;
 mod traits;
 pub use misc::compile_into_regex;
 pub use parser::Parser;
+pub use template::{parameter_masks, shared_slices};
 pub use tokenizer::Tokenizer;
-pub use template::{shared_slices, parameter_masks};
 pub use traits::Tokenize;
 
 #[cfg(test)]

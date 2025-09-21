@@ -1,11 +1,10 @@
-use itertools::Itertools;
 use fancy_regex::Regex;
-
+use itertools::Itertools;
 
 pub fn compile_into_regex<Item, Iter>(regex_str: Iter) -> Regex
 where
- Item: AsRef<str>,
- Iter: IntoIterator<Item = Item>
+    Item: AsRef<str>,
+    Iter: IntoIterator<Item = Item>,
 {
     Regex::new(
         regex_str
